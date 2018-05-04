@@ -1,0 +1,9 @@
+lualib/resty/kafka/errors.lua
+lualib/resty/kafka/ringbuffer.lua
+lualib/resty/kafka/response.lua
+lualib/resty/kafka/producer.lua
+lualib/resty/kafka/broker.lua
+lualib/resty/kafka/request.lua
+lualib/resty/kafka/sendbuffer.lua
+lualib/resty/kafka/client.lua
+pod/lua-resty-kafka-0.06/lua-resty-kafka-0.06.pod

@@ -1,0 +1,6 @@
+.DS_Store
+.vagrant/
+.buildpath
+.project
+.idea
+logs/*
