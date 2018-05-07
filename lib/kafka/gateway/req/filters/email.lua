@@ -1,10 +1,9 @@
-local util               = require "util"
+local util               = require "kafka.gateway.util"
 local config             = require "kafka.gateway.config"
 
 local log                = ngx.log
 local ERR                = ngx.ERR
 local request_time       = util.request_time
-local inflate_body       = util.inflate_body
 local check_email        = util.check_email
 local get_args           = util.get_args
 local get_ip             = util.get_ip
@@ -13,14 +12,7 @@ local get_md5_sig        = util.get_md5_sig
 local topics             = config.KAFKA_TOPICS
 local ipairs             = ipairs
 
-----------------------------------------------------
--- 1. 检查是否zlib压缩,如果压缩，解压重新设置body参数
-----------------------------------------------------
-inflate_body()
-
-----------------------------------------------------
--- 2. 检查参数合法性
-----------------------------------------------------
+-- 检查参数合法性
 local args = get_args()
 
 if not args then

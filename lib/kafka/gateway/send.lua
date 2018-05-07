@@ -1,9 +1,10 @@
+local cjson        = require "kafka.gateway.json" --require "resty.libcjson"
 local producer     = require "resty.kafka.producer"
-local cjson        = require "cjson.safe"
-local config       = require "kafka.config"
+local config       = require "kafka.gateway.config"
 
 local log          = ngx.log
 local ERR          = ngx.ERR
+local NOTICE       = ngx.NOTICE
 local json_encode  = cjson.encode
 local msg_list     = ngx.ctx.messageList
 local BROKER_LIST  = config.BROKER_LIST
@@ -20,9 +21,10 @@ if msg_list then
       if topic then
         local ok, err = kafka_producer:send(topic, key, data)
         if not ok then
-          log(ERR, "kafka err: "..err)
-          log(ERR, "err msg: "..data)
+          log(ERR, "kafka err: " .. err)
+          log(ERR, "err msg: " .. data)
         end
+        log(NOTICE, "msg: " .. data)
       end
     end
   end

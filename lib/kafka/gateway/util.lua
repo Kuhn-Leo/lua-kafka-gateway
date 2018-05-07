@@ -1,9 +1,294 @@
-local zlib             = require "ffi-zlib"
-local cjson            = require "cjson.safe"
+local cjson            = require "kafka.gateway.json" --require "resty.libcjson"
 local config           = require "kafka.gateway.config"
 local json_encode      = cjson.encode
+local json_decode      = cjson.decode
 local md5              = ngx.md5
 local MD5_KEY          = config.MD5_KEY
+
+local getmetatable     = getmetatable
+local tonumber         = tonumber
+local rawget           = rawget
+local insert           = table.insert
+local ipairs           = ipairs
+local pairs            = pairs
+local lower            = string.lower
+local find             = string.find
+local type             = type
+local ngx              = ngx
+local req              = ngx.req
+local log              = ngx.log
+local re_match         = ngx.re.match
+local re_gmatch        = ngx.re.gmatch
+local req_read_body    = req.read_body
+local get_uri_args     = req.get_uri_args
+local get_body_data    = req.get_body_data
+local get_post_args    = req.get_post_args
+
+local NOTICE           = ngx.NOTICE
+
+
+local multipart_mt = {}
+
+
+function multipart_mt:__tostring()
+  return self.data
+end
+
+
+function multipart_mt:__index(name)
+  local json = rawget(self, "json")
+  if json then
+    return json[name]
+  end
+
+  return nil
+end
+
+local function combine_arg(to, arg)
+  if type(arg) ~= "table" or getmetatable(arg) == multipart_mt then
+    insert(to, #to + 1, arg)
+
+  else
+    for k, v in pairs(arg) do
+      local t = to[k]
+
+      if not t then
+        to[k] = v
+
+      else
+        if type(t) == "table" and getmetatable(t) ~= multipart_mt then
+          combine_arg(t, v)
+
+        else
+          to[k] = { t }
+          combine_arg(to[k], v)
+        end
+      end
+    end
+  end
+end
+
+local function combine(args)
+  local to = {}
+
+  if type(args) ~= "table" then
+    return to
+  end
+
+  for _, arg in ipairs(args) do
+    combine_arg(to, arg)
+  end
+
+  return to
+end
+
+local infer
+
+local function infer_value(value, field)
+  if not value or type(field) ~= "table" then
+    return value
+  end
+
+  if value == "" then
+    return ngx.null
+  end
+
+  if field.type == "number" or field.type == "integer" then
+    return tonumber(value) or value
+
+  elseif field.type == "boolean" then
+    if value == "true" then
+      return true
+
+    elseif value == "false" then
+      return false
+    end
+
+  elseif field.type == "array" or field.type == "set" then
+    if type(value) ~= "table" then
+      value = { value }
+    end
+
+    for i, item in ipairs(value) do
+      value[i] = infer_value(item, field.elements)
+    end
+
+  elseif field.type == "foreign" then
+    if type(value) == "table" then
+      return infer(value, field.schema)
+    end
+
+  elseif field.type == "map" then
+    if type(value) == "table" then
+      for k, v in pairs(value) do
+        value[k] = infer_value(v, field.elements)
+      end
+    end
+
+  elseif field.type == "record" then
+    if type(value) == "table" then
+      for k, v in pairs(value) do
+        value[k] = infer_value(v, field.fields[k])
+      end
+    end
+  end
+
+  return value
+end
+
+
+infer = function(args, schema)
+  if not args then
+    return
+  end
+
+  if not schema then
+    return args
+  end
+
+  for field_name, field in schema:each_field() do
+    local value = args[field_name]
+    if value then
+      args[field_name] = infer_value(value, field)
+    end
+  end
+
+  return args
+end
+
+local function decode_array_arg(name, value, container)
+  container = container or {}
+
+  if type(name) ~= "string" then
+    container[name] = value
+    return container[name]
+  end
+
+  local indexes = {}
+  local count   = 0
+  local search  = name
+
+  while true do
+    local captures, err = re_match(search, [[(.+)\[(\d*)\]$]], "ajos")
+    if captures then
+      search = captures[1]
+      count = count + 1
+      indexes[count] = tonumber(captures[2])
+
+    elseif err then
+      log(NOTICE, err)
+      break
+
+    else
+      break
+    end
+  end
+
+  if count == 0 then
+    container[name] = value
+    return container[name]
+  end
+
+  container[search] = {}
+  container = container[search]
+
+  for i = count, 1, -1 do
+    local index = indexes[i]
+
+    if i == 1 then
+      if index then
+        insert(container, index, value)
+        return container[index]
+      end
+
+      if type(value) == "table" and getmetatable(value) ~= multipart_mt then
+        for j, v in ipairs(value) do
+          insert(container, j, v)
+        end
+
+      else
+        container[#container + 1] = value
+      end
+
+      return container
+
+    else
+      if not container[index or 1] then
+        container[index or 1] = {}
+        container = container[index or 1]
+      end
+    end
+  end
+end
+
+
+local function decode_arg(name, value)
+  if type(name) ~= "string" or re_match(name, [[^\.+|\.$]], "jos") then
+    return { name = value }
+  end
+
+  local iterator, err = re_gmatch(name, [[[^.]+]], "jos")
+  if not iterator then
+    if err then
+      log(NOTICE, err)
+    end
+
+    return decode_array_arg(name, value)
+  end
+
+  local names = {}
+  local count = 0
+
+  while true do
+    local captures, err = iterator()
+    if captures then
+      count = count + 1
+      names[count] = captures[0]
+
+    elseif err then
+      log(NOTICE, err)
+      break
+
+    else
+      break
+    end
+  end
+
+  if count == 0 then
+    return decode_array_arg(name, value)
+  end
+
+  local container = {}
+  local bucket = container
+
+  for i = 1, count do
+    if i == count then
+      decode_array_arg(names[i], value, bucket)
+      return container
+
+    else
+      bucket = decode_array_arg(names[i], {}, bucket)
+    end
+  end
+end
+
+
+local function decode(args, schema)
+  local i = 0
+  local r = {}
+
+  if type(args) ~= "table" then
+    return r
+  end
+
+  for name, value in pairs(args) do
+    i = i + 1
+    r[i] = decode_arg(name, value)
+  end
+
+  return infer(combine(r), schema)
+end
+
 
 local _M = {}
 
@@ -30,34 +315,54 @@ end
 
 -- 获取http请求(get|post)参数
 function _M.get_args()
-  local args = {}
-  local m = ngx.var.request_method
-  if "GET" == m then
-    args = ngx.req.get_uri_args()
-  elseif "POST" == m then
-    ngx.req.read_body()  -- log_by_lua 阶段不能使用
-    args = ngx.req.get_post_args()
+  local args
+
+  local content_type = ngx.var.content_type
+  if not content_type then
+    local uargs = get_uri_args()
+    args = decode(uargs)
+    return args
   end
-  return args
-end
 
--- 获取http请求编码
-function _M.get_countent_encoding()
-  return  ngx.req.get_headers()["Content-Encoding"]
-end
+  local content_type_lower = lower(content_type)
 
--- 解压body（gzip 压缩）
-function _M.inflate_body()
-  local encoding =  _M.get_countent_encoding()
-  if encoding == "gzip" then
-    ngx.req.read_body()  -- log_by_lua 阶段不能使用
-    local body = ngx.req.get_body_data()
-    if body then
-      local stream = zlib.inflate()
-      local inflated = stream(body)
-      ngx.req.set_body_data(inflated)
+  if find(content_type_lower, "application/x-www-form-urlencoded", 1, true) == 1 then
+    req_read_body()
+    local pargs, err = get_post_args()
+    if pargs then
+      args = decode(pargs)
+    elseif err then
+      log(NOTICE, err)
+    end
+
+  elseif find(content_type_lower, "application/json", 1, true) == 1 then
+    req_read_body()
+
+    -- we don't support file i/o in case the body is
+    -- buffered to a file, and that is how we want it.
+    local body_data = get_body_data()
+    if body_data then
+      local pargs, err = json_decode(body_data)
+      if pargs then
+        args = pargs
+      elseif err then
+        log(NOTICE, err)
+      end
+    end
+
+  else
+    req_read_body()
+
+    -- we don't support file i/o in case the body is
+    -- buffered to a file, and that is how we want it.
+    local body_data = get_body_data()
+
+    if body_data then
+      args.body = body_data
     end
   end
+
+  return args
 end
 
 -- 获得client ip
