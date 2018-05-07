@@ -3,6 +3,7 @@
 .buildpath
 .project
 .idea
+.luacheckcache
 
 resty_modules/manifest
 resty_modules/pod

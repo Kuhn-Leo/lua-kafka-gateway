@@ -184,3 +184,76 @@ module lua-resty-websocket-0.05
   section 18188 18809 see also
 
 # END lua-resty-websocket
+# BEGIN lua-resty-jit-uuid
+
+dist lua-resty-jit-uuid-0.0.7
+  aliases resty.jit.uuid
+  modules lua-resty-jit-uuid-0.0.7
+
+module lua-resty-jit-uuid-0.0.7
+  aliases resty.jit.uuid
+  section 18 5205 lua-resty-jit-uuid
+  section 304 845 motivation
+  section 845 2489 usage
+  section 2489 2748 installation
+  section 2748 2872 documentation
+  section 2872 4445 benchmarks
+  section 4445 4598 contributions
+  section 4598 5205 license
+
+# END lua-resty-jit-uuid
+# BEGIN lua-ffi-zlib
+
+dist lua-ffi-zlib-0.3.0
+  aliases ffi.zlib
+  modules lua-ffi-zlib-0.3.0
+
+module lua-ffi-zlib-0.3.0
+  aliases ffi.zlib
+  section 18 276 lua-ffi-zlib
+  section 276 1794 methods
+  section 371 1067 inflategzip
+  section 1067 1794 deflategzip
+  section 1794 2614 example
+  section 2614 4953 advanced usage
+  section 2870 3029 createstream
+  section 3029 3186 initinflate
+  section 3186 3390 initdeflate
+  section 3390 3981 deflate
+  section 3981 4572 inflate
+  section 4572 4713 adler
+  section 4713 4848 crc
+  section 4848 4953 zlib_err
+
+# END lua-ffi-zlib
+# BEGIN lua-resty-prettycjson
+
+dist lua-resty-prettycjson-1.6
+  aliases resty.prettycjson
+  modules changes lua-resty-prettycjson-1.6
+
+module changes
+  section 18 1510 change log
+  section 149 249 added
+  section 249 372 changed
+  section 372 488 fixed
+  section 488 790 added
+  section 790 939 changed
+  section 939 1085 fixed
+  section 1085 1302 changed
+  section 1302 1439 changed
+  section 1439 1510 added
+
+module lua-resty-prettycjson-1.6
+  aliases resty.prettycjson
+  section 18 4992 lua-resty-prettycjson
+  section 173 992 installation
+  section 483 576 using openresty package manager (opm)
+  section 576 992 using luarocks or moonrocks
+  section 992 3136 lua api
+  section 1009 1943 string function(dt, [lf = "\n", [id = "\t", [ac = " ", [ec = function]]]])
+  section 1943 3136 example
+  section 3136 3305 changes
+  section 3305 4992 license
+
+# END lua-resty-prettycjson
