@@ -367,14 +367,22 @@ end
 
 -- 获得client ip
 function _M.get_ip()
-  local ip = ngx.req.get_headers()["X-Real-IP"]
+  local headers = ngx.req.get_headers()
+  local ip = headers["X-Real-IP"]
   if not ip then
-    ip = ngx.req.get_headers()["x_forwarded_for"]
+    ip = headers["x_forwarded_for"]
   end
   if not ip then
     ip = ngx.var.remote_addr
   end
   return ip
+end
+
+-- 获取userId
+function _M.get_uid()
+  local headers = ngx.req.get_headers()
+  local id = headers["X-User-ID"]
+  return id
 end
 
 -- string split ,in function  string.gsub not jit ,please use ngx.reg.gsub

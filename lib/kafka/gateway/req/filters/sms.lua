@@ -7,6 +7,7 @@ local request_time       = util.request_time
 local check_sms          = util.check_sms
 local get_args           = util.get_args
 local get_ip             = util.get_ip
+local get_uid            = util.get_uid
 local is_array           = util.is_array
 local get_md5_sig        = util.get_md5_sig
 local topics             = config.KAFKA_TOPICS
@@ -31,6 +32,7 @@ end
 local msg_list = {}
 local ip  = get_ip()
 local t   = request_time()
+local uid = get_uid()
 
 for _, msg in ipairs(msgs) do
   local check_staus = check_sms(msg)
@@ -39,6 +41,8 @@ for _, msg in ipairs(msgs) do
     item["tpc"] = topics.sms
     item["ip"]  = ip
     item["t"]   = t
+    item["uid"] = uid
+    item["msg"] = msg
     item["sig"] = get_md5_sig(msg)
     table.insert(msg_list, item)
   end
