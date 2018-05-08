@@ -4,11 +4,6 @@ redefined       = false
 max_line_length = false
 cache = true
 
-globals = {
-    "_LKG",
-    "ngx.IS_CLI",
-}
-
 not_globals = {
     "string.len",
     "table.getn",

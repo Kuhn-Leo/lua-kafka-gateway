@@ -7,6 +7,10 @@
 
 logs/*.log
 
+resty_modules/manifest
+resty_modules/pod
+resty_modules/resty.index
+
 client_body_temp
 fastcgi_temp
 proxy_temp
