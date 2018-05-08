@@ -1,17 +1,44 @@
-lua-kafka-gateway
+# lua-kafka-gateway
+a h5 api gateway for kafka
 
-# Start
+### 安装openresty
 
-Start your OpenResty application from the current working directory like this:
-```bash
-openresty -p $PWD/
+[1] 安装依赖包   
+```shell
+$ yum install -y gcc gcc-c++ readline-devel pcre-devel openssl-devel tcl perl
 ```
 
-assuming you have the following OpenResty application directory layout in the current directory:
+[2] 安装 [openresty](https://openresty.org/en/download.html)   
+
+click [openresty-1.13.6.1.tar.gz](https://openresty.org/download/openresty-1.13.6.1.tar.gz) start download
+
+```shell
+$ tar -xvf openresty-VERSION.tar.gz
+$ cd openresty-VERSION/
+$ ./configure -j2
+$ make -j2
+$ sudo make install
+```
+
+where VERSION should be replaced by a concrete version number of OpenResty, like 1.13.6.1.
+
+[3] 环境变量   
+better also add the following line to your ~/.bashrc or ~/.bash_profile file.
 
 ```
-logs/
-conf/
-conf/nginx.conf
-resty_modules/
+export PATH=/usr/local/openresty/bin:$PATH
+```
+
+### Start
+
+```shell
+$ cd /path/to/lua-kafka-gateway
+$ sh ./bin/start.sh
+```
+
+### Stop
+
+```shell
+$ cd /path/to/lua-kafka-gateway
+$ sh ./bin/stop.sh
 ```
